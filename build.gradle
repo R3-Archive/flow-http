@@ -4,6 +4,7 @@ buildscript {
     ext.kotlin_version = '1.1.4'
     ext.junit_version = '4.12'
     ext.quasar_version = '0.7.6'
+    ext.okhttp_version = '3.5.0'
 
     repositories {
         mavenLocal()
@@ -72,10 +73,8 @@ dependencies {
 
     testCompile "net.corda:corda-node-driver:$corda_release_version"
 
-    // CorDapp dependencies
-    // Specify your CorDapp's dependencies below, including dependent CorDapps.
-    // We've defined Cash as a dependent CorDapp as an example.
-    cordapp project(":cordapp")
+    // OkHTTP: A simple HTTP library.
+    compile "com.squareup.okhttp3:okhttp:$okhttp_version"
 }
 
 task integrationTest(type: Test, dependsOn: []) {
@@ -116,12 +115,12 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
                 "$project.group:cordapp:$project.version",
                 "net.corda:corda-finance:$corda_release_version"
         ]
-        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["StartFlow.com.template.Initiator"]]]
+        rpcUsers = [[ user: "user1", "password": "test", "permissions": ["StartFlow.com.flowhttp.HttpCallFlow"]]]
     }
 }
 
-task runTemplateClient(type: JavaExec) {
+task runClient(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
-    main = 'com.template.AppKt'
+    main = 'com.flowhttp.AppKt'
     args 'localhost:10006'
 }
