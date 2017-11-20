@@ -1,75 +1,62 @@
 package com.template
 
 import co.paralleluniverse.fibers.Suspendable
-import net.corda.core.contracts.CommandData
-import net.corda.core.contracts.Contract
-import net.corda.core.contracts.ContractState
-import net.corda.core.flows.*
-import net.corda.core.identity.AbstractParty
-import net.corda.core.messaging.CordaRPCOps
-import net.corda.core.serialization.SerializationWhitelist
-import net.corda.core.transactions.LedgerTransaction
-import net.corda.webserver.services.WebServerPluginRegistry
-import java.util.function.Function
-import javax.ws.rs.GET
-import javax.ws.rs.Path
-import javax.ws.rs.Produces
-import javax.ws.rs.core.MediaType
-import javax.ws.rs.core.Response
-
-// *****************
-// * API Endpoints *
-// *****************
-@Path("template")
-class TemplateApi(val rpcOps: CordaRPCOps) {
-    // Accessible at /api/template/templateGetEndpoint.
-    @GET
-    @Path("templateGetEndpoint")
-    @Produces(MediaType.APPLICATION_JSON)
-    fun templateGetEndpoint(): Response {
-        return Response.ok("Template GET endpoint.").build()
-    }
-}
+import net.corda.client.rpc.CordaRPCClient
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.InitiatingFlow
+import net.corda.core.flows.StartableByRPC
+import net.corda.core.messaging.startFlow
+import net.corda.core.utilities.ProgressTracker
+import net.corda.core.utilities.loggerFor
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import net.corda.core.utilities.NetworkHostAndPort.Companion.parse
 
 // *********
 // * Flows *
 // *********
 @InitiatingFlow
 @StartableByRPC
-class Initiator : FlowLogic<Unit>() {
+class Initiator : FlowLogic<String>() {
+
+    override val progressTracker: ProgressTracker = ProgressTracker()
+
     @Suspendable
-    override fun call() {
-        return Unit
+    override fun call(): String {
+        val httpRequest = Request.Builder().url("https://www.corda.net/").build()
+
+        // The request must be executed in a BLOCKING way. Flows don't
+        // currently support suspending to await an HTTP call's response.
+        val httpResponse = OkHttpClient().newCall(httpRequest).execute()
+
+        return httpResponse.body().string()
     }
 }
 
-@InitiatedBy(Initiator::class)
-class Responder(val counterpartySession: FlowSession) : FlowLogic<Unit>() {
-    @Suspendable
-    override fun call() {
-        return Unit
+class TemplateClient {
+    companion object {
+        val logger = loggerFor<TemplateClient>()
+    }
+
+    fun main(args: Array<String>) {
+        require(args.size == 1) { "Usage: TemplateClient <node address>" }
+        val nodeAddress = parse(args[0])
+        val client = CordaRPCClient(nodeAddress)
+
+        // Can be amended in the build.gradle file.
+        val proxy = client.start("user1", "test").proxy
+
+        // Grab all existing TemplateStates and all future TemplateStates.
+        val returnValue = proxy.startFlow(::Initiator).returnValue.get()
+
+        logger.info(returnValue)
     }
 }
 
-// ***********
-// * Plugins *
-// ***********
-class TemplateWebPlugin : WebServerPluginRegistry {
-    // A list of classes that expose web JAX-RS REST APIs.
-    override val webApis: List<Function<CordaRPCOps, out Any>> = listOf(Function(::TemplateApi))
-    //A list of directories in the resources directory that will be served by Jetty under /web.
-    // This template's web frontend is accessible at /web/template.
-    override val staticServeDirs: Map<String, String> = mapOf(
-            // This will serve the templateWeb directory in resources to /web/template
-            "template" to javaClass.classLoader.getResource("templateWeb").toExternalForm()
-    )
+/**
+ * Demonstration of how to use the CordaRPCClient to connect to a Corda Node and
+ * stream the contents of the node's vault.
+ */
+fun main(args: Array<String>) {
+    TemplateClient().main(args)
 }
-
-// Serialization whitelist.
-class TemplateSerializationWhitelist : SerializationWhitelist {
-    override val whitelist: List<Class<*>> = listOf(TemplateData::class.java)
-}
-
-// This class is not annotated with @CordaSerializable, so it must be added to the serialization whitelist, above, if
-// we want to send it to other nodes within a flow.
-data class TemplateData(val payload: String)
