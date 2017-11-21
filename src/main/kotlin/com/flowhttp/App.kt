@@ -23,8 +23,11 @@ class HttpCallFlow : FlowLogic<String>() {
     override fun call(): String {
         val httpRequest = Request.Builder().url(BITCOIN_README_URL).build()
 
-        // The request must be executed in a BLOCKING way. Flows don't
-        // currently support suspending to await an HTTP call's response.
+        // BE CAREFUL when making HTTP calls in flows:
+        // 1. The request must be executed in a BLOCKING way. Flows don't
+        //    currently support suspending to await an HTTP call's response
+        // 2. The request must be idempotent. If the flow fails and has to
+        //    restart from a checkpoint, the request will also be replayed
         val httpResponse = OkHttpClient().newCall(httpRequest).execute()
 
         return httpResponse.body().string()
