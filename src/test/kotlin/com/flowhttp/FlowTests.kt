@@ -1,9 +1,8 @@
 package com.flowhttp
 
-import net.corda.node.internal.StartedNode
 import net.corda.testing.node.MockNetwork
-import net.corda.testing.node.MockNetwork.MockNode
-import net.corda.testing.unsetCordappPackages
+import net.corda.testing.node.StartedMockNode
+import net.corda.testing.node.startFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.junit.After
@@ -15,27 +14,25 @@ val BITCOIN_README_URL = "https://raw.githubusercontent.com/bitcoin/bitcoin/4405
 
 class FlowTests {
     lateinit var network: MockNetwork
-    lateinit var a: StartedNode<MockNode>
+    lateinit var a: StartedMockNode
 
     @Before
     fun setup() {
-        network = MockNetwork()
-        val nodes = network.createSomeNodes(1)
-        a = nodes.partyNodes[0]
+        network = MockNetwork(listOf("com.flowhttp"))
+        a = network.createPartyNode()
         network.runNetwork()
     }
 
     @After
     fun tearDown() {
         network.stopNodes()
-        unsetCordappPackages()
     }
 
     @Test
     fun `testFlowReturnsCorrectHtml`() {
         // The flow should return the first commit of the BitCoin readme.
         val flow = HttpCallFlow()
-        val future = a.services.startFlow(flow).resultFuture
+        val future = a.services.startFlow(flow)
         network.runNetwork()
         val returnValue = future.get()
 
