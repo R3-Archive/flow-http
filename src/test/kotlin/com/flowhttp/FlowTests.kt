@@ -2,7 +2,6 @@ package com.flowhttp
 
 import net.corda.testing.node.MockNetwork
 import net.corda.testing.node.StartedMockNode
-import net.corda.testing.node.startFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.junit.After
@@ -32,7 +31,7 @@ class FlowTests {
     fun `testFlowReturnsCorrectHtml`() {
         // The flow should return the first commit of the BitCoin readme.
         val flow = HttpCallFlow()
-        val future = a.services.startFlow(flow)
+        val future = a.startFlow(flow)
         network.runNetwork()
         val returnValue = future.get()
 
