@@ -12,7 +12,7 @@ import net.corda.testing.node.User
  */
 fun main(args: Array<String>) {
     // No permissions required as we are not invoking flows.
-    val user = User("user1", "test", permissions = setOf("StartFlow.com.flowhttp.HttpCallFlow"))
+    val user = User("user1", "test", permissions = setOf("ALL"))
     driver(DriverParameters().withIsDebug(true).withWaitForAllNodesToFinish(true)) {
         startNode(providedName = CordaX500Name("PartyA", "London", "GB"), rpcUsers = listOf(user)).getOrThrow()
     }
